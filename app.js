@@ -47,14 +47,14 @@ class App{
     
     setEnvironment(){
         const loader = new RGBELoader().setDataType( THREE.UnsignedByteType );
-        const pmremGenerator = new THREE.PMREMGenerator( this.renderer );
-        pmremGenerator.compileEquirectangularShader();
+        const pmremGenerator = new THREE.PMREMGenerator( this.renderer ); //  generate a pre-filtered mipmap representation of the environment map
+        pmremGenerator.compileEquirectangularShader(); //  compile the shader used to display the environment map
         
         const self = this;
         
         loader.load( './assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
-          const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
-          pmremGenerator.dispose();
+          const envMap = pmremGenerator.fromEquirectangular( texture ).texture; // creates an environment map from the loaded image
+          pmremGenerator.dispose(); // disposed of to free up memory
 
           self.scene.environment = envMap;
 
@@ -70,7 +70,7 @@ class App{
     }
     
     loadKnight(){
-	    const loader = new GLTFLoader().setPath(this.assetsPath);
+	    const loader = new GLTFLoader().setPath(this.assetsPath); // path to gltf file
 		const self = this;
 		
 		// Load a GLTF resource
@@ -101,7 +101,7 @@ class App{
 				self.knight.object.scale.set(scale, scale, scale); 
 				
                 self.loadingBar.visible = false;
-                self.renderer.setAnimationLoop( self.render.bind(self) );//(timestamp, frame) => { self.render(timestamp, frame); } );
+                self.renderer.setAnimationLoop( self.render.bind(self) );
 			},
 			// called while loading is progressing
 			function ( xhr ) {
@@ -120,11 +120,11 @@ class App{
     
     initScene(){
         this.reticle = new THREE.Mesh(
-            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ).rotateX( - Math.PI / 2 ),
+            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ).rotateX( - Math.PI / 2 ), // inner, outer radius and no of segments
             new THREE.MeshBasicMaterial()
         );
         
-        this.reticle.matrixAutoUpdate = false;
+        this.reticle.matrixAutoUpdate = false; // doesn't update on the movement, only on tap of the screen
         this.reticle.visible = false;
         this.scene.add( this.reticle );
         
@@ -145,17 +145,17 @@ class App{
             if (self.knight===undefined) return;
             
             if (self.reticle.visible){
-                if (self.knight.object.visible){
+                if (self.knight.object.visible){ // if the circle and the knight are visible then on tap the knight just changes its position and walks to the circle position
                     self.workingVec3.setFromMatrixPosition( self.reticle.matrix );
                     self.knight.newPath(self.workingVec3);
-                }else{
-                    self.knight.object.position.setFromMatrixPosition( self.reticle.matrix );
+                }else{ 
+                    self.knight.object.position.setFromMatrixPosition( self.reticle.matrix ); // when the knight is not visible, it positions it to the circle and makes the knight visible
                     self.knight.object.visible = true;
                 }
             }
         }
 
-        this.controller = this.renderer.xr.getController( 0 );
+        this.controller = this.renderer.xr.getController( 0 ); // gets the first device that interacts with the WebXR system
         this.controller.addEventListener( 'select', onSelect );
         
         this.scene.add( this.controller );    
@@ -166,11 +166,11 @@ class App{
         
         const session = this.renderer.xr.getSession();
 
-        session.requestReferenceSpace( 'viewer' ).then( function ( referenceSpace ) {
+        session.requestReferenceSpace( 'viewer' ).then( function ( referenceSpace ) { // requests a reference space that is fixed relative to the viewer's physical position in the real world
             
-            session.requestHitTestSource( { space: referenceSpace } ).then( function ( source ) {
+            session.requestHitTestSource( { space: referenceSpace } ).then( function ( source ) { // hit test is a way to check if a virtual object intersects with a real-world surface
 
-                self.hitTestSource = source;
+                self.hitTestSource = source; // the hit test source is the knight himself
 
             } );
 
@@ -191,14 +191,14 @@ class App{
     getHitTestResults( frame ){
         const hitTestResults = frame.getHitTestResults( this.hitTestSource );
 
-        if ( hitTestResults.length ) {
+        if ( hitTestResults.length ) { // Each hit test result in the array represents a point in the real world that has been intersected by a virtual ray projected from the user's device
             
-            const referenceSpace = this.renderer.xr.getReferenceSpace();
+            const referenceSpace = this.renderer.xr.getReferenceSpace(); // gets the reference space 
             const hit = hitTestResults[ 0 ];
-            const pose = hit.getPose( referenceSpace );
+            const pose = hit.getPose( referenceSpace ); // represents the position and orientation of a point in 3D space   
 
             this.reticle.visible = true;
-            this.reticle.matrix.fromArray( pose.transform.matrix );
+            this.reticle.matrix.fromArray( pose.transform.matrix ); // used to update the position and orientation of the reticle so that it aligns with the surface that was hit by the hit test
 
         } else {
 
@@ -210,7 +210,7 @@ class App{
 
     render( timestamp, frame ) {
         const dt = this.clock.getDelta();
-        if (this.knight) this.knight.update(dt);
+        if (this.knight) this.knight.update(dt); // updates the knight using delta time which is the time since last frame
 
         const self = this;
         
@@ -218,15 +218,11 @@ class App{
 
             if ( this.hitTestSourceRequested === false ) this.requestHitTestSource( )
 
-            if ( this.hitTestSource ) this.getHitTestResults( frame );
+            if ( this.hitTestSource ) this.getHitTestResults( frame ); // passes the current frame to get the hitResults
 
         }
 
         this.renderer.render( this.scene, this.camera );
-        
-        /*if (this.knight.calculatedPath && this.knight.calculatedPath.length>0){
-            console.log( `path:${this.knight.calculatedPath[0].x.toFixed(2)}, ${this.knight.calculatedPath[0].y.toFixed(2)}, ${this.knight.calculatedPath[0].z.toFixed(2)} position: ${this.knight.object.position.x.toFixed(2)}, ${this.knight.object.position.y.toFixed(2)}, ${this.knight.object.position.z.toFixed(2)}`);
-        }*/
     }
 }
 
